@@ -86,7 +86,6 @@ flowchart LR
     SERVICE --> DAO[DAO Layer]
     DAO --> JDBC[JDBC Driver]
     JDBC --> DB[(MySQL Database)]
-<img width="1533" height="964" alt="mermaid-diagram" src="https://github.com/user-attachments/assets/674b2413-d093-4239-bedd-ccb814cf59ab" />
 
 
 
