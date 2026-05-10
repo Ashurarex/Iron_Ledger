@@ -109,4 +109,12 @@ public class WorkoutService {
                 toDate
         );
     }
+
+    public List<java.sql.Date> getWorkoutDatesForMonth(java.time.YearMonth yearMonth) {
+        return workoutDAO.getWorkoutDatesForMonth(
+                Session.getCurrentUserId(),
+                yearMonth.getYear(),
+                yearMonth.getMonthValue()
+        );
+    }
 }

@@ -24,4 +24,16 @@ public class ReportService {
     public List<Object[]> getWeightProgressByDate() {
         return workoutDAO.getWeightProgressByDate(Session.getCurrentUserId());
     }
+
+    public List<Object[]> getVolumeByCategory() {
+        return workoutDAO.getVolumeByCategory(Session.getCurrentUserId());
+    }
+
+    public List<Object[]> getWeeklyVolume() {
+        return workoutDAO.getWeeklyVolume(Session.getCurrentUserId());
+    }
+
+    public List<Object[]> getMonthlyVolume() {
+        return workoutDAO.getMonthlyVolume(Session.getCurrentUserId());
+    }
 }

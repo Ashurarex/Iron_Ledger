@@ -2,8 +2,10 @@ package ui;
 
 import service.AuthService;
 import utils.WindowUtil;
+import ui.theme.UITheme;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class RegisterFrame extends JFrame {
@@ -19,90 +21,139 @@ public class RegisterFrame extends JFrame {
     public RegisterFrame() {
         WindowUtil.setupFullScreen(this, "Iron Ledger - Register");
 
-        JPanel mainPanel = new JPanel(new GridBagLayout());
-        mainPanel.setBackground(new Color(245, 245, 245));
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(UITheme.BG_MAIN);
 
-        JPanel cardPanel = new JPanel(new GridBagLayout());
-        cardPanel.setBackground(Color.WHITE);
-        cardPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 220, 220)),
-                BorderFactory.createEmptyBorder(35, 50, 35, 50)
-        ));
+        // Left brand panel (matches LoginFrame)
+        JPanel brandPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint gp = new GradientPaint(0, 0, UITheme.SIDEBAR_BG, 0, getHeight(), new Color(27, 38, 30));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        brandPanel.setLayout(new GridBagLayout());
+        brandPanel.setPreferredSize(new Dimension(500, 0));
+
+        JPanel brandContent = new JPanel();
+        brandContent.setLayout(new BoxLayout(brandContent, BoxLayout.Y_AXIS));
+        brandContent.setOpaque(false);
+
+        JLabel brandIcon = new JLabel("⚒");
+        brandIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 80));
+        brandIcon.setForeground(UITheme.ACCENT_GOLD);
+        brandIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel logoLabel = new JLabel("⚒ IRON LEDGER");
+        logoLabel.setFont(new Font("Segoe UI Symbol", Font.BOLD, 32));
+        logoLabel.setForeground(Color.WHITE);
+        logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel tagline = new JLabel("FORGED IN DISCIPLINE. BUILT FOR PROGRESS.");
+        tagline.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tagline.setForeground(new Color(160, 155, 145));
+        tagline.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        brandContent.add(brandIcon);
+        brandContent.add(Box.createRigidArea(new Dimension(0, 20)));
+        brandContent.add(logoLabel);
+        brandContent.add(Box.createRigidArea(new Dimension(0, 10)));
+        brandContent.add(tagline);
+
+        brandPanel.add(brandContent);
+
+        // Right form panel
+        JPanel rightPanel = new JPanel(new GridBagLayout());
+        rightPanel.setBackground(UITheme.BG_MAIN);
+
+        JPanel cardPanel = UITheme.createCardPanel();
+        cardPanel.setLayout(new GridBagLayout());
+        cardPanel.setPreferredSize(new Dimension(500, 600));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 12, 10, 12);
+        gbc.insets = new Insets(8, 24, 8, 24);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        JLabel titleLabel = new JLabel("Create Iron Ledger Account", JLabel.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 30));
+        JLabel titleLabel = new JLabel("Create Account", JLabel.CENTER);
+        titleLabel.setFont(UITheme.FONT_H1);
+        titleLabel.setForeground(UITheme.TEXT_PRIMARY);
 
-        JLabel nameLabel = new JLabel("Name:");
-        JLabel usernameLabel = new JLabel("Username:");
-        JLabel emailLabel = new JLabel("Email:");
-        JLabel passwordLabel = new JLabel("Password:");
-        JLabel confirmPasswordLabel = new JLabel("Confirm Password:");
+        JLabel subtitleLabel = new JLabel("Join the ledger to track your power", JLabel.CENTER);
+        subtitleLabel.setFont(UITheme.FONT_REGULAR);
+        subtitleLabel.setForeground(UITheme.TEXT_SECONDARY);
 
-        JLabel[] labels = {nameLabel, usernameLabel, emailLabel, passwordLabel, confirmPasswordLabel};
+        nameField = new JTextField(28);
+        usernameField = new JTextField(28);
+        emailField = new JTextField(28);
+        passwordField = new JPasswordField(28);
+        confirmPasswordField = new JPasswordField(28);
 
-        for (JLabel label : labels) {
-            label.setFont(new Font("Arial", Font.PLAIN, 18));
-        }
+        UITheme.styleTextField(nameField);
+        UITheme.styleTextField(usernameField);
+        UITheme.styleTextField(emailField);
+        UITheme.styleTextField(passwordField);
+        UITheme.styleTextField(confirmPasswordField);
 
-        nameField = new JTextField(22);
-        usernameField = new JTextField(22);
-        emailField = new JTextField(22);
-        passwordField = new JPasswordField(22);
-        confirmPasswordField = new JPasswordField(22);
+        JButton registerBtn = new JButton("👤 CREATE ACCOUNT");
+        UITheme.stylePrimaryButton(registerBtn);
+        registerBtn.setFont(UITheme.FONT_ICON_SMALL.deriveFont(Font.BOLD, 14f));
+        
+        JButton backBtn = new JButton("BACK TO LOGIN");
+        UITheme.styleBackButton(backBtn);
+        backBtn.setFont(backBtn.getFont().deriveFont(Font.BOLD, 14f));
 
-        JTextField[] fields = {nameField, usernameField, emailField, passwordField, confirmPasswordField};
-
-        for (JTextField field : fields) {
-            field.setFont(new Font("Arial", Font.PLAIN, 18));
-        }
-
-        JButton registerButton = new JButton("Register");
-        JButton backButton = new JButton("Back to Login");
-
-        stylePrimaryButton(registerButton);
-        styleSecondaryButton(backButton);
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
         cardPanel.add(titleLabel, gbc);
 
+        gbc.gridy = 1; gbc.insets = new Insets(0, 24, 30, 24);
+        cardPanel.add(subtitleLabel, gbc);
+
         gbc.gridwidth = 1;
+        gbc.insets = new Insets(4, 24, 4, 24);
 
-        addRow(cardPanel, gbc, 1, nameLabel, nameField);
-        addRow(cardPanel, gbc, 2, usernameLabel, usernameField);
-        addRow(cardPanel, gbc, 3, emailLabel, emailField);
-        addRow(cardPanel, gbc, 4, passwordLabel, passwordField);
-        addRow(cardPanel, gbc, 5, confirmPasswordLabel, confirmPasswordField);
+        addRow(cardPanel, gbc, 2, "📛 Full Name", nameField);
+        addRow(cardPanel, gbc, 3, "👤 Username", usernameField);
+        addRow(cardPanel, gbc, 4, "✉️ Email Address", emailField);
+        addRow(cardPanel, gbc, 5, "🔑 Password", passwordField);
+        addRow(cardPanel, gbc, 6, "🔁 Confirm Pass", confirmPasswordField);
 
-        gbc.gridx = 0;
-        gbc.gridy = 6;
-        cardPanel.add(registerButton, gbc);
+        gbc.gridx = 0; gbc.gridy = 7; gbc.gridwidth = 2;
+        gbc.insets = new Insets(30, 24, 12, 24);
+        cardPanel.add(registerBtn, gbc);
 
-        gbc.gridx = 1;
-        cardPanel.add(backButton, gbc);
+        gbc.gridy = 8;
+        gbc.insets = new Insets(4, 24, 16, 24);
+        cardPanel.add(backBtn, gbc);
 
-        mainPanel.add(cardPanel);
+        rightPanel.add(cardPanel);
+
+        mainPanel.add(brandPanel, BorderLayout.WEST);
+        mainPanel.add(rightPanel, BorderLayout.CENTER);
         add(mainPanel);
 
-        registerButton.addActionListener(e -> registerUser());
-
-        backButton.addActionListener(e -> {
+        registerBtn.addActionListener(e -> registerUser());
+        backBtn.addActionListener(e -> {
             new LoginFrame().setVisible(true);
             dispose();
         });
     }
 
-    private void addRow(JPanel panel, GridBagConstraints gbc, int row, JLabel label, JTextField field) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
+    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, JTextField field) {
+        JLabel label = UITheme.createFieldLabel(labelText);
+        label.setFont(UITheme.FONT_ICON_SMALL);
+        gbc.gridx = 0; gbc.gridy = row;
+        gbc.weightx = 0.1;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
         panel.add(label, gbc);
-
         gbc.gridx = 1;
+        gbc.weightx = 0.9;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(field, gbc);
     }
 
@@ -116,27 +167,11 @@ public class RegisterFrame extends JFrame {
         String result = authService.register(name, username, password, confirmPassword, email);
 
         if (result.equals("SUCCESS")) {
-            JOptionPane.showMessageDialog(this, "Registration successful. Please login.");
+            JOptionPane.showMessageDialog(this, "Registration successful.");
             new LoginFrame().setVisible(true);
             dispose();
         } else {
             JOptionPane.showMessageDialog(this, result, "Registration Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private void stylePrimaryButton(JButton button) {
-        button.setBackground(new Color(40, 120, 220));
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setFont(new Font("Arial", Font.BOLD, 18));
-        button.setPreferredSize(new Dimension(200, 45));
-    }
-
-    private void styleSecondaryButton(JButton button) {
-        button.setBackground(Color.DARK_GRAY);
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setFont(new Font("Arial", Font.BOLD, 18));
-        button.setPreferredSize(new Dimension(200, 45));
     }
 }

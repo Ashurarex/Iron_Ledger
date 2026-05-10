@@ -2,254 +2,226 @@ package ui;
 
 import service.BMIService;
 import utils.WindowUtil;
+import ui.theme.UITheme;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
 public class BMIFrame extends JFrame {
 
+    private final BMIService bmiService = new BMIService();
+
     private JTextField heightField;
     private JTextField weightField;
-    private JLabel bmiValueLabel;
-    private JLabel bmiCategoryLabel;
+    private JLabel resultLabel;
+    private JLabel categoryLabel;
+    private JPanel visualIndicatorPanel;
 
-    private JTable bmiTable;
+    private JTable historyTable;
     private DefaultTableModel tableModel;
-
-    private int selectedBmiId = -1;
-
-    private final BMIService bmiService = new BMIService();
 
     public BMIFrame() {
         WindowUtil.setupFullScreen(this, "Iron Ledger - BMI Calculator");
 
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(245, 245, 245));
+        mainPanel.setBackground(UITheme.BG_MAIN);
+        mainPanel.setBorder(new EmptyBorder(40, 50, 40, 50));
 
-        JLabel titleLabel = new JLabel("BMI Calculator", JLabel.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 34));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
-
-        mainPanel.add(titleLabel, BorderLayout.NORTH);
-
-        JPanel formPanel = createFormPanel();
-        mainPanel.add(formPanel, BorderLayout.WEST);
-
-        JPanel tablePanel = createTablePanel();
-        mainPanel.add(tablePanel, BorderLayout.CENTER);
-
-        add(mainPanel);
-
-        loadBMIHistory();
-    }
-
-    private JPanel createFormPanel() {
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setPreferredSize(new Dimension(400, 0));
-        formPanel.setBorder(BorderFactory.createEmptyBorder(25, 30, 25, 30));
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(12, 8, 12, 8);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        JLabel heightLabel = new JLabel("Height in cm:");
-        JLabel weightLabel = new JLabel("Weight in kg:");
-
-        heightField = new JTextField();
-        weightField = new JTextField();
-
-        heightLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        weightLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        heightField.setFont(new Font("Arial", Font.PLAIN, 16));
-        weightField.setFont(new Font("Arial", Font.PLAIN, 16));
-
-        addFormRow(formPanel, gbc, 0, heightLabel, heightField);
-        addFormRow(formPanel, gbc, 1, weightLabel, weightField);
-
-        JButton calculateButton = new JButton("Calculate and Save BMI");
-        JButton clearButton = new JButton("Clear");
-        JButton deleteButton = new JButton("Delete Selected Record");
-        JButton backButton = new JButton("Back");
-
-        styleButton(calculateButton, new Color(40, 120, 220));
-        styleButton(clearButton, Color.DARK_GRAY);
-        styleButton(deleteButton, new Color(180, 40, 40));
-        styleButton(backButton, Color.GRAY);
-
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 2;
-        formPanel.add(calculateButton, gbc);
-
-        gbc.gridy = 3;
-        formPanel.add(clearButton, gbc);
-
-        gbc.gridy = 4;
-        formPanel.add(deleteButton, gbc);
-
-        JPanel resultPanel = new JPanel(new GridLayout(4, 1, 5, 5));
-        resultPanel.setBackground(new Color(245, 245, 245));
-        resultPanel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
-
-        JLabel resultTitle = new JLabel("BMI Result", JLabel.CENTER);
-        resultTitle.setFont(new Font("Arial", Font.BOLD, 22));
-
-        bmiValueLabel = new JLabel("BMI Value: -", JLabel.CENTER);
-        bmiCategoryLabel = new JLabel("Category: -", JLabel.CENTER);
-
-        bmiValueLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        bmiCategoryLabel.setFont(new Font("Arial", Font.BOLD, 18));
-
-        JLabel hintLabel = new JLabel("Formula: weight / height²", JLabel.CENTER);
-        hintLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-
-        resultPanel.add(resultTitle);
-        resultPanel.add(bmiValueLabel);
-        resultPanel.add(bmiCategoryLabel);
-        resultPanel.add(hintLabel);
-
-        gbc.gridy = 5;
-        formPanel.add(resultPanel, gbc);
-
-        gbc.gridy = 6;
-        formPanel.add(backButton, gbc);
-
-        calculateButton.addActionListener(e -> calculateBMI());
-        clearButton.addActionListener(e -> clearFields());
-        deleteButton.addActionListener(e -> deleteSelectedBMI());
-        backButton.addActionListener(e -> {
+        // Header
+        JButton backBtn = new JButton("BACK");
+        UITheme.styleBackButton(backBtn);
+        backBtn.addActionListener(e -> {
             new DashboardFrame().setVisible(true);
             dispose();
         });
+        mainPanel.add(UITheme.createPageHeader("Body Mass Index Tool", backBtn), BorderLayout.NORTH);
 
-        return formPanel;
-    }
+        // Content
+        JPanel contentPanel = new JPanel(new GridBagLayout());
+        contentPanel.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
 
-    private JPanel createTablePanel() {
-        JPanel tablePanel = new JPanel(new BorderLayout());
-        tablePanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
-
-        JLabel historyLabel = new JLabel("BMI History", JLabel.LEFT);
-        historyLabel.setFont(new Font("Arial", Font.BOLD, 22));
-        historyLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
-
-        tableModel = new DefaultTableModel(
-                new Object[]{"BMI ID", "Height (cm)", "Weight (kg)", "BMI Value", "Category", "Date"},
-                0
-        );
-
-        bmiTable = new JTable(tableModel);
-        bmiTable.setRowHeight(28);
-        bmiTable.setFont(new Font("Arial", Font.PLAIN, 14));
-        bmiTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
-
-        JScrollPane scrollPane = new JScrollPane(bmiTable);
-
-        tablePanel.add(historyLabel, BorderLayout.NORTH);
-        tablePanel.add(scrollPane, BorderLayout.CENTER);
-
-        bmiTable.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && bmiTable.getSelectedRow() != -1) {
-                int selectedRow = bmiTable.getSelectedRow();
-                int modelRow = bmiTable.convertRowIndexToModel(selectedRow);
-
-                selectedBmiId = (int) tableModel.getValueAt(modelRow, 0);
-
-                heightField.setText(String.valueOf(tableModel.getValueAt(modelRow, 1)));
-                weightField.setText(String.valueOf(tableModel.getValueAt(modelRow, 2)));
-                bmiValueLabel.setText("BMI Value: " + tableModel.getValueAt(modelRow, 3));
-                bmiCategoryLabel.setText("Category: " + tableModel.getValueAt(modelRow, 4));
-            }
-        });
-
-        return tablePanel;
-    }
-
-    private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, JLabel label, JTextField field) {
+        // Calculator (Left)
         gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 1;
-        panel.add(label, gbc);
+        gbc.weightx = 0.35;
+        gbc.insets = new Insets(0, 0, 0, 32);
+        contentPanel.add(createCalculatorPanel(), gbc);
 
+        // History (Right)
         gbc.gridx = 1;
-        panel.add(field, gbc);
+        gbc.weightx = 0.65;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        contentPanel.add(createHistoryPanel(), gbc);
+
+        mainPanel.add(contentPanel, BorderLayout.CENTER);
+        add(mainPanel);
+
+        loadHistory();
+    }
+
+    private JPanel createCalculatorPanel() {
+        JPanel calcCard = UITheme.createCardPanel();
+        calcCard.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(12, 16, 12, 16);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0; gbc.gridy = 0;
+        calcCard.add(UITheme.createSectionLabel("⚖️  BMI Assessment"), gbc);
+
+        gbc.gridy = 1;
+        calcCard.add(UITheme.createFieldLabel("Height (cm)"), gbc);
+        gbc.gridy = 2;
+        heightField = new JTextField();
+        UITheme.styleTextField(heightField);
+        calcCard.add(heightField, gbc);
+
+        gbc.gridy = 3;
+        calcCard.add(UITheme.createFieldLabel("Weight (kg)"), gbc);
+        gbc.gridy = 4;
+        weightField = new JTextField();
+        UITheme.styleTextField(weightField);
+        calcCard.add(weightField, gbc);
+
+        gbc.gridy = 5;
+        gbc.insets = new Insets(32, 16, 32, 16);
+        JButton calcBtn = new JButton("➕ CALCULATE & LOG");
+        UITheme.stylePrimaryButton(calcBtn);
+        calcBtn.setFont(UITheme.FONT_ICON_SMALL);
+        calcCard.add(calcBtn, gbc);
+
+        // Result Area
+        JPanel resultArea = new JPanel(new GridBagLayout());
+        resultArea.setOpaque(false);
+        resultArea.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.BORDER_COLOR));
+
+        GridBagConstraints rbc = new GridBagConstraints();
+        rbc.insets = new Insets(20, 0, 8, 0);
+        rbc.gridx = 0; rbc.gridy = 0;
+
+        resultLabel = new JLabel("BMI: --");
+        resultLabel.setFont(UITheme.FONT_DISPLAY);
+        resultLabel.setForeground(UITheme.TEXT_PRIMARY);
+        resultArea.add(resultLabel, rbc);
+
+        rbc.gridy = 1;
+        rbc.insets = new Insets(0, 0, 20, 0);
+        categoryLabel = new JLabel("Category: --");
+        categoryLabel.setFont(UITheme.FONT_H2);
+        categoryLabel.setForeground(UITheme.TEXT_SECONDARY);
+        resultArea.add(categoryLabel, rbc);
+
+        // Visual Indicator
+        rbc.gridy = 2;
+        rbc.fill = GridBagConstraints.HORIZONTAL;
+        rbc.weightx = 1.0;
+        visualIndicatorPanel = new JPanel(new GridLayout(1, 4, 4, 0));
+        visualIndicatorPanel.setOpaque(false);
+        visualIndicatorPanel.setPreferredSize(new Dimension(0, 10));
+        
+        Color[] colors = {UITheme.PRIMARY_GREEN.brighter(), UITheme.PRIMARY_GREEN, UITheme.ACCENT_GOLD, UITheme.DANGER_RUST};
+        for (int i = 0; i < 4; i++) {
+            JPanel segment = new JPanel();
+            segment.setBackground(colors[i]);
+            segment.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR, 1));
+            visualIndicatorPanel.add(segment);
+        }
+        resultArea.add(visualIndicatorPanel, rbc);
+
+        gbc.gridy = 6;
+        gbc.insets = new Insets(10, 16, 10, 16);
+        calcCard.add(resultArea, gbc);
+
+        calcBtn.addActionListener(e -> calculateBMI());
+
+        return calcCard;
+    }
+
+    private JPanel createHistoryPanel() {
+        JPanel historyCard = UITheme.createCardPanel();
+        historyCard.setLayout(new BorderLayout(0, 20));
+
+        historyCard.add(UITheme.createSectionLabel("📉 Body Composition History"), BorderLayout.NORTH);
+
+        String[] columns = {"ID", "Weight", "Height", "BMI", "Category", "Date"};
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        historyTable = new JTable(tableModel);
+        UITheme.styleTable(historyTable);
+
+        JScrollPane scrollPane = new JScrollPane(historyTable);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        historyCard.add(scrollPane, BorderLayout.CENTER);
+
+        JButton deleteBtn = new JButton("🗑️ Remove Selected Entry");
+        UITheme.styleSecondaryButton(deleteBtn);
+        deleteBtn.setFont(UITheme.FONT_ICON_SMALL);
+        deleteBtn.setForeground(UITheme.DANGER_RUST);
+        deleteBtn.addActionListener(e -> deleteRecord());
+        historyCard.add(deleteBtn, BorderLayout.SOUTH);
+
+        return historyCard;
     }
 
     private void calculateBMI() {
-        String result = bmiService.calculateAndSaveBMI(
-                heightField.getText().trim(),
-                weightField.getText().trim()
-        );
+        String hStr = heightField.getText();
+        String wStr = weightField.getText();
 
+        String result = bmiService.calculateAndSaveBMI(hStr, wStr);
         if (result.startsWith("SUCCESS")) {
             String[] parts = result.split(":");
-
-            String bmiValue = parts[1];
-            String category = parts[2];
-
-            bmiValueLabel.setText("BMI Value: " + bmiValue);
-            bmiCategoryLabel.setText("Category: " + category);
-
-            JOptionPane.showMessageDialog(this, "BMI calculated and saved successfully.");
-
-            loadBMIHistory();
+            double bmiValue = Double.parseDouble(parts[1]);
+            String cat = parts[2];
+            
+            resultLabel.setText(String.format("BMI: %.1f", bmiValue));
+            categoryLabel.setText(cat);
+            updateIndicator(cat);
+            loadHistory();
         } else {
-            JOptionPane.showMessageDialog(this, result, "BMI Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, result, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void deleteSelectedBMI() {
-        if (selectedBmiId <= 0) {
-            JOptionPane.showMessageDialog(this, "Select a BMI record first.");
-            return;
+    private void updateIndicator(String cat) {
+        for (int i = 0; i < 4; i++) {
+            JPanel p = (JPanel) visualIndicatorPanel.getComponent(i);
+            p.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR, 1));
         }
+        int index = -1;
+        if (cat.equalsIgnoreCase("Underweight")) index = 0;
+        else if (cat.equalsIgnoreCase("Normal weight")) index = 1;
+        else if (cat.equalsIgnoreCase("Overweight")) index = 2;
+        else if (cat.equalsIgnoreCase("Obese")) index = 3;
 
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Are you sure you want to delete this BMI record?",
-                "Confirm Delete",
-                JOptionPane.YES_NO_OPTION
-        );
+        if (index != -1) {
+            JPanel p = (JPanel) visualIndicatorPanel.getComponent(index);
+            p.setBorder(BorderFactory.createLineBorder(UITheme.TEXT_PRIMARY, 2));
+        }
+    }
 
-        if (confirm == JOptionPane.YES_OPTION) {
-            boolean deleted = bmiService.deleteBMIRecord(selectedBmiId);
+    private void loadHistory() {
+        List<Object[]> history = bmiService.getBMIHistory();
+        tableModel.setRowCount(0);
+        for (Object[] b : history) {
+            tableModel.addRow(b);
+        }
+    }
 
-            if (deleted) {
-                JOptionPane.showMessageDialog(this, "BMI record deleted successfully.");
-                clearFields();
-                loadBMIHistory();
-            } else {
-                JOptionPane.showMessageDialog(this, "Failed to delete BMI record.", "Error", JOptionPane.ERROR_MESSAGE);
+    private void deleteRecord() {
+        int row = historyTable.getSelectedRow();
+        if (row != -1) {
+            int id = (int) tableModel.getValueAt(row, 0);
+            if (bmiService.deleteBMIRecord(id)) {
+                loadHistory();
             }
         }
-    }
-
-    private void loadBMIHistory() {
-        tableModel.setRowCount(0);
-
-        List<Object[]> records = bmiService.getBMIHistory();
-
-        for (Object[] row : records) {
-            tableModel.addRow(row);
-        }
-    }
-
-    private void clearFields() {
-        selectedBmiId = -1;
-        heightField.setText("");
-        weightField.setText("");
-        bmiValueLabel.setText("BMI Value: -");
-        bmiCategoryLabel.setText("Category: -");
-        bmiTable.clearSelection();
-    }
-
-    private void styleButton(JButton button, Color color) {
-        button.setBackground(color);
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setFont(new Font("Arial", Font.BOLD, 15));
     }
 }

@@ -323,4 +323,128 @@ public class WorkoutDAO {
 
         return new Object[]{0, 0, 0.0, 0, 0};
     }
+
+    public List<Object[]> getVolumeByCategory(int userId) {
+        List<Object[]> data = new ArrayList<>();
+
+        String sql = """
+                SELECT c.category_name, SUM(w.sets_count * w.reps * w.weight) AS total_volume
+                FROM workouts w
+                LEFT JOIN exercise_categories c ON w.category_id = c.category_id
+                WHERE w.user_id = ?
+                GROUP BY c.category_name
+                ORDER BY total_volume DESC
+                """;
+
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, userId);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                data.add(new Object[]{
+                        resultSet.getString("category_name"),
+                        resultSet.getDouble("total_volume")
+                    });
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Volume report failed: " + e.getMessage());
+        }
+
+        return data;
+    }
+
+    public double getMaxWeightForExercise(int userId, String exerciseName) {
+        String sql = """
+                SELECT MAX(weight) AS max_weight
+                FROM workouts
+                WHERE user_id = ? AND LOWER(exercise_name) = LOWER(?)
+                """;
+
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, userId);
+            statement.setString(2, exerciseName.trim());
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                return resultSet.getDouble("max_weight");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Max weight for exercise failed: " + e.getMessage());
+        }
+
+        return 0.0;
+    }
+
+    public List<Date> getWorkoutDatesForMonth(int userId, int year, int month) {
+        List<Date> dates = new ArrayList<>();
+        String sql = """
+                SELECT DISTINCT workout_date
+                FROM workouts
+                WHERE user_id = ? AND YEAR(workout_date) = ? AND MONTH(workout_date) = ?
+                """;
+
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, userId);
+            statement.setInt(2, year);
+            statement.setInt(3, month);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                dates.add(resultSet.getDate("workout_date"));
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Fetch workout dates for month failed: " + e.getMessage());
+        }
+
+        return dates;
+    }
+
+    public List<Object[]> getWeeklyVolume(int userId) {
+        List<Object[]> data = new ArrayList<>();
+        String sql = """
+                SELECT CONCAT('Week ', WEEK(workout_date)) as label, SUM(sets_count * reps * weight) as volume
+                FROM workouts
+                WHERE user_id = ? AND workout_date >= DATE_SUB(CURDATE(), INTERVAL 8 WEEK)
+                GROUP BY label
+                ORDER BY MIN(workout_date)
+                """;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                data.add(new Object[]{rs.getString("label"), rs.getDouble("volume")});
+            }
+        } catch (SQLException e) { System.out.println("Weekly volume failed: " + e.getMessage()); }
+        return data;
+    }
+
+    public List<Object[]> getMonthlyVolume(int userId) {
+        List<Object[]> data = new ArrayList<>();
+        String sql = """
+                SELECT DATE_FORMAT(workout_date, '%b %Y') as label, SUM(sets_count * reps * weight) as volume
+                FROM workouts
+                WHERE user_id = ? AND workout_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                GROUP BY label
+                ORDER BY MIN(workout_date)
+                """;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                data.add(new Object[]{rs.getString("label"), rs.getDouble("volume")});
+            }
+        } catch (SQLException e) { System.out.println("Monthly volume failed: " + e.getMessage()); }
+        return data;
+    }
 }

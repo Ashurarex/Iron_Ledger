@@ -12,7 +12,7 @@ public class DBConnection {
             + "&serverTimezone=UTC";
 
     private static final String USER = "root";
-    private static final String PASSWORD = "YOUR_MYSQL_PASSWORD";
+    private static final String PASSWORD = "smoothoperator";
 
     public static Connection getConnection() {
         try {
